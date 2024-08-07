@@ -6,10 +6,47 @@ import Ionicons from "react-native-vector-icons/Ionicons"
 import { useNavigation } from '@react-navigation/native'
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from '../navigations/StackNavigation'
+import axios from 'axios';
+import { useUser } from '../context/loggedInUser'
 
 const LoginScreen = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  const {login} = useUser();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const HandleLoginPage = async()=>{
+    console.log(email, password);
+    try {
+      const user = {email, password}
+      const res = await axios.post("http://192.168.43.37:8000/api/v1/user/login", user);
+      // console.log(res);
+      const data = res.data;
+      if(res.status !== 201){
+        setError(data.message);
+        return;
+      }
+
+      const userData = data.data;
+      setEmail("");
+      setPassword("");
+      setError(null);
+      login(userData);
+      navigation.replace("Main");
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.log('Error message:', error.message);
+        console.log('Error details:', error.response?.data);
+      } else {
+        console.log('Unexpected error:', error);
+      }
+      setError("Server error");
+    }
+  }
 
   return (
     <AuthScreenLayout>
@@ -35,6 +72,8 @@ const LoginScreen = () => {
         }}>
           <MaterialIcons name='email' size={25} color="#61677A"/>
           <TextInput 
+            value={email}
+            onChangeText={setEmail}
             placeholder='Enter email address' 
             placeholderTextColor="#61677A"
             style={{
@@ -56,6 +95,8 @@ const LoginScreen = () => {
         }}>
           <MaterialIcons name='lock' size={25} color="#61677A"/>
           <TextInput 
+            value={password}
+            onChangeText={setPassword}
             placeholder='Enter password' 
             placeholderTextColor="#61677A"
             secureTextEntry={!showPassword}
@@ -75,7 +116,8 @@ const LoginScreen = () => {
             <Text style={{color: '#61677A', fontSize: 12, fontWeight: '500'}}>Need help?</Text>
             <Text style={{color: '#5C88C4', fontSize: 12, fontWeight: '500'}}>Forgot password?</Text>
         </View>
-        <TouchableOpacity style={{backgroundColor: "#FF9A00", alignItems: 'center', paddingVertical: 8, borderRadius: 5}}>
+        {error && <Text style={{color: "red", alignSelf:"center", paddingVertical: 7}}>{error}</Text>}
+        <TouchableOpacity onPress={HandleLoginPage} style={{backgroundColor: "#FF9A00", alignItems: 'center', paddingVertical: 8, borderRadius: 5}}>
           <Text style={{color: "#FFFFFF", fontSize: 16, fontWeight: "600"}}>Login</Text>
         </TouchableOpacity>
         <Pressable onPress={()=>navigation.navigate("Register")}>
